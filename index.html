@@ -1,264 +1,127 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>OpenIPC Configuration</title>
+<title>Serial USB Connection Checker</title>
 <style>
-/* Basic CSS Styling */
 body {
   font-family: sans-serif;
-  margin: 20px;
-  background-color: #f4f4f4;
-}
-
-.container {
-  width: 80%;
-  margin: auto;
-  background-color: #fff;
-  padding: 20px;
-  border-radius: 5px;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-h1 {
   text-align: center;
-  color: #333;
+  padding: 20px;
 }
 
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-}
-
-input[type="text"],
-input[type="password"],
-select {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  box-sizing: border-box; /* Important for width calculation */
-}
-
-button {
+#connectButton {
+  padding: 10px 20px;
   background-color: #4CAF50;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 4px;
+  border-radius: 5px;
   cursor: pointer;
-  float: right;
+  font-size: 16px;
 }
 
-button:hover {
+#connectButton:hover {
   background-color: #3e8e41;
 }
 
-.form-group {
-  margin-bottom: 15px;
-}
-
-.error {
-  color: red;
-  font-size: 0.8em;
-}
-
-/* Clearfix to prevent floating issues */
-.clearfix::after {
-  content: "";
-  clear: both;
-  display: table;
+#status {
+  margin-top: 20px;
+  font-size: 18px;
+  font-weight: bold;
 }
 </style>
 </head>
 <body>
 
-<div class="container">
-  <h1>OpenIPC Configuration</h1>
+  <h1>Serial USB Connection Checker</h1>
 
-  <form id="openipc-form">
+  <button id="connectButton">Connect to USB Device</button>
 
-    <div class="form-group">
-      <label for="camera-name">Camera Name:</label>
-      <input type="text" id="camera-name" name="camera-name" placeholder="e.g., Living Room Camera" required>
-      <span id="camera-name-error" class="error"></span>
-    </div>
+  <p id="status">Not Connected</p>
 
-    <div class="form-group">
-      <label for="network-mode">Network Mode:</label>
-      <select id="network-mode" name="network-mode">
-        <option value="dhcp" selected>DHCP</option>
-        <option value="static">Static IP</option>
-      </select>
-    </div>
+  <script>
+    const connectButton = document.getElementById('connectButton');
+    const statusDisplay = document.getElementById('status');
+    let port = null; // Store the serial port object
 
-    <div id="static-ip-config" style="display: none;">
-      <div class="form-group">
-        <label for="static-ip">Static IP Address:</label>
-        <input type="text" id="static-ip" name="static-ip" placeholder="192.168.1.100">
-        <span id="static-ip-error" class="error"></span>
-      </div>
+    connectButton.addEventListener('click', async () => {
+      try {
+        // Request a serial port.  This will trigger a browser prompt for the user to select a device.
+        port = await navigator.serial.requestPort();
 
-      <div class="form-group">
-        <label for="netmask">Netmask:</label>
-        <input type="text" id="netmask" name="netmask" placeholder="255.255.255.0">
-        <span id="netmask-error" class="error"></span>
-      </div>
+        // Open the serial port.  Configure baudRate, etc. as needed for your device.
+        await port.open({ baudRate: 9600 }); // Common default baud rate
 
-      <div class="form-group">
-        <label for="gateway">Gateway:</label>
-        <input type="text" id="gateway" name="gateway" placeholder="192.168.1.1">
-        <span id="gateway-error" class="error"></span>
-      </div>
-    </div>
+        // Set the status to "Connected"
+        statusDisplay.textContent = 'Connected!';
+        statusDisplay.style.color = 'green';
+        connectButton.disabled = true; // Disable the button after connecting.
+        connectButton.textContent = "Connected";
 
-    <div class="form-group">
-      <label for="admin-username">Admin Username:</label>
-      <input type="text" id="admin-username" name="admin-username" value="admin" required>
-      <span id="admin-username-error" class="error"></span>
-    </div>
+        // Optional: You could add code here to read data from the serial port
+        // or write data to it.  See examples below.
 
-    <div class="form-group">
-      <label for="admin-password">Admin Password:</label>
-      <input type="password" id="admin-password" name="admin-password" required>
-      <span id="admin-password-error" class="error"></span>
-    </div>
+      } catch (error) {
+        // Handle any errors that may occur when connecting.
+        statusDisplay.textContent = 'Connection Failed: ' + error;
+        statusDisplay.style.color = 'red';
+        console.error('Serial Connection Error:', error);
+        port = null; // Reset the port object on error
+      }
+    });
 
-    <div class="form-group">
-      <label for="rtsp-port">RTSP Port:</label>
-      <input type="text" id="rtsp-port" name="rtsp-port" value="8554">
-      <span id="rtsp-port-error" class="error"></span>
-    </div>
-
-    <div class="clearfix">
-      <button type="submit">Save Configuration</button>
-    </div>
-
-  </form>
-</div>
-
-
-<script>
-// JavaScript for form handling and validation
-
-const form = document.getElementById('openipc-form');
-const networkModeSelect = document.getElementById('network-mode');
-const staticIpConfigDiv = document.getElementById('static-ip-config');
-const staticIpInput = document.getElementById('static-ip');
-const netmaskInput = document.getElementById('netmask');
-const gatewayInput = document.getElementById('gateway');
-const cameraNameInput = document.getElementById('camera-name');
-
-// Error message elements
-const cameraNameError = document.getElementById('camera-name-error');
-const staticIpError = document.getElementById('static-ip-error');
-const netmaskError = document.getElementById('netmask-error');
-const gatewayError = document.getElementById('gateway-error');
-const rtspPortInput = document.getElementById('rtsp-port');
-const rtspPortError = document.getElementById('rtsp-port-error');
-
-// Function to validate IP address format
-function isValidIPAddress(ip) {
-  const ipRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-  return ipRegex.test(ip) &&
-         ip.split('.').every(octet => parseInt(octet) >= 0 && parseInt(octet) <= 255);
-}
-
-// Function to validate netmask format (simplified)
-function isValidNetmask(netmask) {
-    const netmaskRegex = /^(\d{1,3}\.){3}\d{1,3}$/;
-    return netmaskRegex.test(netmask) &&
-           netmask.split('.').every(octet => parseInt(octet) >= 0 && parseInt(octet) <= 255);
-}
-
-function isValidPort(port) {
-    const portNumber = parseInt(port);
-    return !isNaN(portNumber) && portNumber > 0 && portNumber <= 65535;
-}
-
-
-// Event listener for network mode change
-networkModeSelect.addEventListener('change', function() {
-  if (this.value === 'static') {
-    staticIpConfigDiv.style.display = 'block';
-  } else {
-    staticIpConfigDiv.style.display = 'none';
-  }
-});
-
-
-// Form submission handling
-form.addEventListener('submit', function(event) {
-  event.preventDefault(); // Prevent default form submission
-
-  // Reset error messages
-  cameraNameError.textContent = '';
-  staticIpError.textContent = '';
-  netmaskError.textContent = '';
-  gatewayError.textContent = '';
-  rtspPortError.textContent = '';
-
-
-  let isValid = true;
-
-  // Validate Camera Name (example: not empty)
-  if (cameraNameInput.value.trim() === '') {
-      cameraNameError.textContent = 'Camera name is required.';
-      isValid = false;
-  }
-
-
-  // Validate Static IP fields if Static IP is selected
-  if (networkModeSelect.value === 'static') {
-    if (!isValidIPAddress(staticIpInput.value)) {
-      staticIpError.textContent = 'Invalid IP address format.';
-      isValid = false;
+    // --- Example of Reading from the Serial Port (Optional) ---
+    async function readSerialData() {
+      const reader = port.readable.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) {
+            // Reader has been canceled.  Typically, this happens when the port is closed.
+            console.log("Reader cancelled.");
+            break;
+          }
+          const textDecoder = new TextDecoder();
+          const decodedText = textDecoder.decode(value);
+          console.log('Received:', decodedText);
+          // Do something with the received data (e.g., display it on the page)
+        }
+      } catch (error) {
+        console.error("Error reading from serial port:", error);
+      } finally {
+        reader.releaseLock(); // Release the lock when done.
+      }
     }
 
-    if (!isValidNetmask(netmaskInput.value)) {
-      netmaskError.textContent = 'Invalid netmask format.';
-      isValid = false;
+    // --- Example of Writing to the Serial Port (Optional) ---
+    async function writeSerialData(data) {
+      const writer = port.writable.getWriter();
+      const dataEncoder = new TextEncoder();
+      await writer.write(dataEncoder.encode(data));
+      writer.releaseLock();
     }
 
-    if (!isValidIPAddress(gatewayInput.value)) {
-      gatewayError.textContent = 'Invalid gateway format.';
-      isValid = false;
-    }
-  }
 
-   // Validate RTSP Port
-   if (!isValidPort(rtspPortInput.value)) {
-      rtspPortError.textContent = 'Invalid port number (1-65535).';
-      isValid = false;
-   }
+    // Add a listener to handle the serial port closing (e.g., if the USB device is disconnected)
+    navigator.serial.addEventListener('disconnect', event => {
+      console.log("Serial port disconnected.");
+      statusDisplay.textContent = "Disconnected";
+      statusDisplay.style.color = "red";
+      connectButton.disabled = false;
+      connectButton.textContent = "Connect to USB Device";
 
+      if (port) {
+        // Attempt to close the port if it's still open
+        if (port.readable) {
+          port.readable.cancel();
+        }
+        if (port.writable) {
+          port.writable.close();
+        }
+        port.close();
+        port = null;  // Clear the port object
+      }
+    });
 
-  if (isValid) {
-    // Gather form data
-    const formData = new FormData(form);
-    const data = {};
-    for (const [key, value] of formData.entries()) {
-      data[key] = value;
-    }
-
-    // Convert the data to JSON
-    const jsonData = JSON.stringify(data);
-
-    // You would typically send this data to a server-side script (e.g., PHP, Python) for processing
-    // Here, we just display it in the console for demonstration purposes
-    console.log('Form Data (JSON):', jsonData);
-
-    // Simulate a successful submission
-    alert('Configuration saved successfully! (Data logged to console)');
-
-    // You can then redirect the user or perform other actions
-  } else {
-    alert('Please correct the errors in the form.');
-  }
-});
-
-</script>
-
+  </script>
 </body>
 </html>
