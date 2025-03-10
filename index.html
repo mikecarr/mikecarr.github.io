@@ -9,19 +9,7 @@ body {
   padding: 20px;
 }
 
-#connectButton {
-  padding: 10px 20px;
-  background-color: #4CAF50;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 16px;
-}
 
-#connectButton:hover {
-  background-color: #3e8e41;
-}
 
 #status {
   margin-top: 20px;
@@ -32,96 +20,9 @@ body {
 </head>
 <body>
 
-  <h1>Serial USB Connection Checker</h1>
+  <h1>Sandbox</h1>
 
-  <button id="connectButton">Connect to USB Device</button>
-
-  <p id="status">Not Connected</p>
-
-  <script>
-    const connectButton = document.getElementById('connectButton');
-    const statusDisplay = document.getElementById('status');
-    let port = null; // Store the serial port object
-
-    connectButton.addEventListener('click', async () => {
-      try {
-        // Request a serial port.  This will trigger a browser prompt for the user to select a device.
-        port = await navigator.serial.requestPort();
-
-        // Open the serial port.  Configure baudRate, etc. as needed for your device.
-        await port.open({ baudRate: 9600 }); // Common default baud rate
-
-        // Set the status to "Connected"
-        statusDisplay.textContent = 'Connected!';
-        statusDisplay.style.color = 'green';
-        connectButton.disabled = true; // Disable the button after connecting.
-        connectButton.textContent = "Connected";
-
-        // Optional: You could add code here to read data from the serial port
-        // or write data to it.  See examples below.
-
-      } catch (error) {
-        // Handle any errors that may occur when connecting.
-        statusDisplay.textContent = 'Connection Failed: ' + error;
-        statusDisplay.style.color = 'red';
-        console.error('Serial Connection Error:', error);
-        port = null; // Reset the port object on error
-      }
-    });
-
-    // --- Example of Reading from the Serial Port (Optional) ---
-    async function readSerialData() {
-      const reader = port.readable.getReader();
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) {
-            // Reader has been canceled.  Typically, this happens when the port is closed.
-            console.log("Reader cancelled.");
-            break;
-          }
-          const textDecoder = new TextDecoder();
-          const decodedText = textDecoder.decode(value);
-          console.log('Received:', decodedText);
-          // Do something with the received data (e.g., display it on the page)
-        }
-      } catch (error) {
-        console.error("Error reading from serial port:", error);
-      } finally {
-        reader.releaseLock(); // Release the lock when done.
-      }
-    }
-
-    // --- Example of Writing to the Serial Port (Optional) ---
-    async function writeSerialData(data) {
-      const writer = port.writable.getWriter();
-      const dataEncoder = new TextEncoder();
-      await writer.write(dataEncoder.encode(data));
-      writer.releaseLock();
-    }
-
-
-    // Add a listener to handle the serial port closing (e.g., if the USB device is disconnected)
-    navigator.serial.addEventListener('disconnect', event => {
-      console.log("Serial port disconnected.");
-      statusDisplay.textContent = "Disconnected";
-      statusDisplay.style.color = "red";
-      connectButton.disabled = false;
-      connectButton.textContent = "Connect to USB Device";
-
-      if (port) {
-        // Attempt to close the port if it's still open
-        if (port.readable) {
-          port.readable.cancel();
-        }
-        if (port.writable) {
-          port.writable.close();
-        }
-        port.close();
-        port = null;  // Clear the port object
-      }
-    });
-
-  </script>
+  <img src="https://github-readme-stats.vercel.app/api?username=mikecarr&show_icons=true&number_format=long&border_radius=20&rank_icon=percentile&ring_color=75C3FD&hide=issues" width=700 />
+  
 </body>
 </html>
